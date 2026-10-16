@@ -86,7 +86,6 @@ def test_catalog_availability_matches_adapter_status(task, tier):
         AudioTask.MUSIC_SOURCE_SEPARATION: ("htdemucs",),
         AudioTask.SPEAKER_SEPARATION: ("sepformer",),
         AudioTask.VOICE_ACTIVITY_DETECTION: ("silero_vad",),
-        AudioTask.AUDIO_CLASSIFICATION: ("clap",),
         AudioTask.AUDIO_CLASSIFICATION: ("clap", "yamnet"),
     }
     expected = integrated.get(task, ()) if tier is SelectionTier.INTEGRATED else ()
