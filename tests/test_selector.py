@@ -65,9 +65,10 @@ def test_tier_accepts_exact_string_values(tier):
     (AudioTask.MUSIC_SOURCE_SEPARATION, "htdemucs"),
     (AudioTask.SPEAKER_SEPARATION, "sepformer"),
     (AudioTask.VOICE_ACTIVITY_DETECTION, "silero_vad"),
+    (AudioTask.AUDIO_CLASSIFICATION, "clap"),
 ])
 def test_catalog_reports_python_integration_without_browser_readiness(task, model_id):
-    result = select_models(task)
+    result = select_models(task, tier=SelectionTier.INTEGRATED)
 
     assert [model.model_id for model in result.eligible_models] == [model_id]
     assert result.assessments[0].reasons == (SelectionReason.TASK_SUPPORTED, SelectionReason.BROWSER_NOT_ASSESSED)
@@ -85,6 +86,7 @@ def test_catalog_availability_matches_adapter_status(task, tier):
         AudioTask.MUSIC_SOURCE_SEPARATION: ("htdemucs",),
         AudioTask.SPEAKER_SEPARATION: ("sepformer",),
         AudioTask.VOICE_ACTIVITY_DETECTION: ("silero_vad",),
+        AudioTask.AUDIO_CLASSIFICATION: ("clap",),
     }
     expected = integrated.get(task, ()) if tier is SelectionTier.INTEGRATED else ()
 

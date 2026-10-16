@@ -90,7 +90,7 @@ MODEL_CATALOG: tuple[ModelSpec, ...] = (
     ModelSpec("whisper", "Whisper", (AudioTask.SPEECH_TRANSCRIPTION,), EvidenceStatus.PILOT_EVALUATED, IntegrationStatus.INTEGRATED),
     ModelSpec("silero_vad", "Silero VAD", (AudioTask.VOICE_ACTIVITY_DETECTION,), EvidenceStatus.PILOT_EVALUATED, IntegrationStatus.INTEGRATED),
     ModelSpec("pyannote_diarization", "pyannote.audio diarization pipeline", (AudioTask.SPEAKER_DIARIZATION,)),
-    ModelSpec("clap", "CLAP", (AudioTask.AUDIO_CLASSIFICATION,)),
+    ModelSpec("clap", "CLAP", (AudioTask.AUDIO_CLASSIFICATION,), EvidenceStatus.PILOT_EVALUATED, IntegrationStatus.INTEGRATED),
     ModelSpec("yamnet", "YAMNet", (AudioTask.AUDIO_CLASSIFICATION,)),
 )
 
