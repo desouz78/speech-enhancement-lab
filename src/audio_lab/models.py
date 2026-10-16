@@ -85,7 +85,7 @@ class ModelSpec:
 
 MODEL_CATALOG: tuple[ModelSpec, ...] = (
     ModelSpec("deepfilternet3", "DeepFilterNet3", (AudioTask.SPEECH_ENHANCEMENT,), EvidenceStatus.PILOT_EVALUATED, IntegrationStatus.INTEGRATED),
-    ModelSpec("htdemucs", "HTDemucs", (AudioTask.MUSIC_SOURCE_SEPARATION,), EvidenceStatus.PILOT_EVALUATED),
+    ModelSpec("htdemucs", "HTDemucs", (AudioTask.MUSIC_SOURCE_SEPARATION,), EvidenceStatus.PILOT_EVALUATED, IntegrationStatus.INTEGRATED),
     ModelSpec("sepformer", "SepFormer", (AudioTask.SPEAKER_SEPARATION,)),
     ModelSpec("whisper", "Whisper", (AudioTask.SPEECH_TRANSCRIPTION,), EvidenceStatus.PILOT_EVALUATED, IntegrationStatus.INTEGRATED),
     ModelSpec("silero_vad", "Silero VAD", (AudioTask.VOICE_ACTIVITY_DETECTION,)),
