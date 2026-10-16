@@ -59,20 +59,20 @@ def test_tier_accepts_exact_string_values(tier):
     assert select_models(AudioTask.SPEECH_ENHANCEMENT, tier=tier.value) == select_models(AudioTask.SPEECH_ENHANCEMENT, tier=tier)
 
 
-@pytest.mark.parametrize("task, model_id", [
-    (AudioTask.SPEECH_ENHANCEMENT, "deepfilternet3"),
-    (AudioTask.SPEECH_TRANSCRIPTION, "whisper"),
-    (AudioTask.MUSIC_SOURCE_SEPARATION, "htdemucs"),
-    (AudioTask.SPEAKER_SEPARATION, "sepformer"),
-    (AudioTask.VOICE_ACTIVITY_DETECTION, "silero_vad"),
-    (AudioTask.AUDIO_CLASSIFICATION, "clap"),
+@pytest.mark.parametrize("task, expected_ids", [
+    (AudioTask.SPEECH_ENHANCEMENT, ("deepfilternet3",)),
+    (AudioTask.SPEECH_TRANSCRIPTION, ("whisper",)),
+    (AudioTask.MUSIC_SOURCE_SEPARATION, ("htdemucs",)),
+    (AudioTask.SPEAKER_SEPARATION, ("sepformer",)),
+    (AudioTask.VOICE_ACTIVITY_DETECTION, ("silero_vad",)),
+    (AudioTask.AUDIO_CLASSIFICATION, ("clap", "yamnet")),
 ])
-def test_catalog_reports_python_integration_without_browser_readiness(task, model_id):
+def test_catalog_reports_python_integration_without_browser_readiness(task, expected_ids):
     result = select_models(task, tier=SelectionTier.INTEGRATED)
 
-    assert [model.model_id for model in result.eligible_models] == [model_id]
-    assert result.assessments[0].reasons == (SelectionReason.TASK_SUPPORTED, SelectionReason.BROWSER_NOT_ASSESSED)
-    assert result.assessments[0].model.evidence_status is EvidenceStatus.PILOT_EVALUATED
+    assert tuple(model.model_id for model in result.eligible_models) == expected_ids
+    assert all(assessment.reasons == (SelectionReason.TASK_SUPPORTED, SelectionReason.BROWSER_NOT_ASSESSED) for assessment in result.assessments)
+    assert all(assessment.model.evidence_status is EvidenceStatus.PILOT_EVALUATED for assessment in result.assessments)
 
 
 @pytest.mark.parametrize("task", list(AudioTask))
@@ -87,6 +87,7 @@ def test_catalog_availability_matches_adapter_status(task, tier):
         AudioTask.SPEAKER_SEPARATION: ("sepformer",),
         AudioTask.VOICE_ACTIVITY_DETECTION: ("silero_vad",),
         AudioTask.AUDIO_CLASSIFICATION: ("clap",),
+        AudioTask.AUDIO_CLASSIFICATION: ("clap", "yamnet"),
     }
     expected = integrated.get(task, ()) if tier is SelectionTier.INTEGRATED else ()
 
