@@ -230,3 +230,71 @@ def test_backend_errors_propagate_without_masking(stage):
         execute_separate_transcribe(make_clip(), separator=sep, transcriber=transcriber)
     assert exc.value is failure
     assert len(transcriber.calls) == (0 if stage == "separator" else 1)
+
+
+@pytest.mark.parametrize("first,second", [(4.0, 0.2), (0.2, 4.0), (8.0, 5.0)])
+def test_explicit_shared_gain_normalizes_asr_without_modifying_stems(first, second):
+    clip = make_clip(amplitude=0.3)
+    separation = make_separation(clip, first=first, second=second)
+    original = tuple(source.samples.copy() for source in separation.sources)
+    transcriber = Transcriber()
+
+    result = execute_separate_transcribe(
+        clip, separator=Separator(output=separation), transcriber=transcriber,
+        language="en", normalize_for_transcription=True,
+    )
+
+    expected_gain = 1.0 / max(1.0, *(float(np.max(np.abs(source))) for source in original))
+    assert result.transcription_gain == pytest.approx(expected_gain)
+    assert result.separation is separation
+    assert tuple(item.text for item in result.transcriptions) == ("track 1", "track 2")
+    for index, (asr_clip, language) in enumerate(transcriber.calls):
+        assert language == "en"
+        assert asr_clip is not separation.sources[index]
+        assert asr_clip.sample_rate == clip.sample_rate
+        assert asr_clip.frames == clip.frames
+        assert not asr_clip.samples.flags.writeable
+        assert np.max(np.abs(asr_clip.samples)) <= 1.0
+        np.testing.assert_allclose(asr_clip.samples, original[index] * expected_gain, rtol=1e-6, atol=1e-7)
+        np.testing.assert_array_equal(separation.sources[index].samples, original[index])
+
+
+def test_normalization_opt_in_leaves_bounded_audio_and_identity_gain_untouched():
+    clip = make_clip()
+    transcriber = Transcriber()
+    result = execute_separate_transcribe(
+        clip, separator=Separator(), transcriber=transcriber, normalize_for_transcription=True,
+    )
+    assert result.transcription_gain == 1.0
+    assert transcriber.calls[0][0] is result.separation.speaker_1
+    assert transcriber.calls[1][0] is result.separation.speaker_2
+
+
+@pytest.mark.parametrize("invalid", [None, 0, 1, 0.0, 1.0, "True", [], object()])
+def test_invalid_normalization_mode_rejected_before_inference(invalid):
+    separator, transcriber = Separator(), Transcriber()
+    with pytest.raises(TypeError, match="normalize_for_transcription"):
+        execute_separate_transcribe(
+            make_clip(), separator=separator, transcriber=transcriber,
+            normalize_for_transcription=invalid,
+        )
+    assert separator.calls == transcriber.calls == []
+
+
+@pytest.mark.parametrize("invalid", [None, False, True, 0, 1, -0.1, 0.0, 1.00001, float("inf"), float("nan"), "0.5"])
+def test_result_rejects_invalid_transcription_gain(invalid):
+    clip = make_clip()
+    with pytest.raises(ValueError, match="transcription_gain"):
+        SeparateTranscribeResult(
+            clip, make_separation(clip), (make_transcription(), make_transcription()), invalid,
+        )
+
+
+def test_strict_mode_rejects_overrange_even_if_normalization_option_not_passed():
+    clip = make_clip()
+    transcriber = Transcriber()
+    with pytest.raises(PipelineExecutionError, match="track 1 exceeds"):
+        execute_separate_transcribe(
+            clip, separator=Separator(output=make_separation(clip, first=4.0)), transcriber=transcriber,
+        )
+    assert transcriber.calls == []
