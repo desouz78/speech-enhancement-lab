@@ -43,7 +43,7 @@ def test_diarization_and_separation_are_distinct_tasks():
     assert diarization.isdisjoint(separation)
 
 
-def test_catalog_is_immutable_and_has_unique_identifiers():
+def log_is_immutable_and_has_unique_identifiers():
     assert isinstance(MODEL_CATALOG, tuple)
     assert len(MODEL_CATALOG) == len({model.model_id for model in MODEL_CATALOG})
     assert all(isinstance(model.tasks, tuple) for model in MODEL_CATALOG)
@@ -52,10 +52,10 @@ def test_catalog_is_immutable_and_has_unique_identifiers():
 
 
 def test_catalog_progress_is_not_misrepresented():
-    assert {model.model_id for model in MODEL_CATALOG if model.evidence_status == EvidenceStatus.PILOT_EVALUATED} == {
-        "deepfilternet3", "htdemucs"
-    }
-    assert {model.model_id for model in MODEL_CATALOG if model.integration_status is IntegrationStatus.INTEGRATED} == {"deepfilternet3"}
+    assert {model.model_id for model in MODEL_CATALOG if model.evidence_status == EvidenceStatus.PILOT_EVALUATED} == {"deepfilternet3", "htdemucs", "whisper"}
+
+    assert {model.model_id for model in MODEL_CATALOG if model.integration_status == IntegrationStatus.INTEGRATED} == {"deepfilternet3", "whisper"}
+
     assert all(model.browser_status == BrowserStatus.NOT_ASSESSED for model in MODEL_CATALOG)
 
 
