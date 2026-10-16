@@ -64,6 +64,7 @@ def test_tier_accepts_exact_string_values(tier):
     (AudioTask.SPEECH_TRANSCRIPTION, "whisper"),
     (AudioTask.MUSIC_SOURCE_SEPARATION, "htdemucs"),
     (AudioTask.SPEAKER_SEPARATION, "sepformer"),
+    (AudioTask.VOICE_ACTIVITY_DETECTION, "silero_vad"),
 ])
 def test_catalog_reports_python_integration_without_browser_readiness(task, model_id):
     result = select_models(task)
@@ -83,6 +84,7 @@ def test_catalog_availability_matches_adapter_status(task, tier):
         AudioTask.SPEECH_TRANSCRIPTION: ("whisper",),
         AudioTask.MUSIC_SOURCE_SEPARATION: ("htdemucs",),
         AudioTask.SPEAKER_SEPARATION: ("sepformer",),
+        AudioTask.VOICE_ACTIVITY_DETECTION: ("silero_vad",),
     }
     expected = integrated.get(task, ()) if tier is SelectionTier.INTEGRATED else ()
 
