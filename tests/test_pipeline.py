@@ -191,7 +191,7 @@ def test_catalog_plans_only_claim_capability_availability(preset):
 def test_pipeline_planning_reflects_partial_python_integration(preset, tier):
     plan = plan_pipeline(preset, tier=tier)
 
-    supported_tasks = {AudioTask.SPEECH_ENHANCEMENT, AudioTask.SPEECH_TRANSCRIPTION}
+    supported_tasks = {AudioTask.SPEECH_ENHANCEMENT, AudioTask.SPEAKER_SEPARATION, AudioTask.SPEECH_TRANSCRIPTION}
     expected = tuple(tier is SelectionTier.INTEGRATED and stage.definition.task in supported_tasks for stage in plan.stages)
 
     assert tuple(stage.available for stage in plan.stages) == expected
