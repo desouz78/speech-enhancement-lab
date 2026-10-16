@@ -1,195 +1,170 @@
 # Speech Enhancement Lab
 
-**An AI-driven framework for intelligent audio analysis, model selection, and processing.**
+**A modular Python research engine for audio analysis, pretrained model inference, and explainable task-based model selection.**
 
 [![Python Tests](https://github.com/desouz78/speech-enhancement-lab/actions/workflows/tests.yml/badge.svg)](https://github.com/desouz78/speech-enhancement-lab/actions/workflows/tests.yml)
 
-**Project Status:** Active Development
+**Status:** Python V1 — pilot-validated; browser demonstration and automatic acoustic-condition-based selection are future work.
 
 ## Overview
 
-Different acoustic scenarios require different AI models. A neural network designed to suppress background noise may not be suitable for separating overlapping speakers, extracting musical instruments, or transcribing speech.
+Speech Enhancement Lab investigates how specialized pretrained models can be combined to analyze, transform, and transcribe audio. Its current release concentrates on a testable **Python engine** rather than a browser application.
 
-**Speech Enhancement Lab** explores how audio characteristics and processing objectives can guide the automatic selection and orchestration of pretrained AI models.
+The project provides validated audio primitives; deterministic global and temporal acoustic features; an explainable, task-based model catalog; optional adapters for pretrained neural models; and two explicit, executable processing pipelines. **Model selection currently requires the caller to specify the processing task.** The engine does not infer the best task or model from an audio recording, benchmark competing models automatically, or guarantee output quality.
 
-The project aims to develop an interactive audio laboratory where users can introduce acoustic interference, explore different processing scenarios, and understand how specialized neural networks interpret and transform audio signals.
+## Python V1: model inventory
 
-Rather than developing new neural architectures, the focus is on building an explainable, modular system that connects audio analysis, intelligent model selection, and AI-powered processing.
-
-## Project Objectives
-
-- **Audio Characterization:** Extract acoustic features and identify relevant properties of incoming audio.
-- **Intelligent Model Selection:** Recommend appropriate pretrained AI models based on acoustic conditions, processing objectives, and computational requirements.
-- **Speech Enhancement:** Suppress unwanted acoustic interference while preserving speech.
-- **Source Separation:** Separate overlapping voices, vocals, and musical instruments.
-- **Speech Recognition:** Generate text transcriptions from spoken audio.
-- **Speaker Diarization:** Determine when different speakers are active in a recording.
-- **Explainable AI:** Present the selected models, the reasoning behind their selection, and their processing results.
-- **Interactive Visualization:** Explore audio signals and compare their spectrograms before and after processing.
-
-## AI Model Ecosystem
-
-The following pretrained models are candidates for integration:
-
-| Model | Primary Application | Status |
+| Model | Task | Python V1 status |
 |---|---|---|
-| DeepFilterNet3 | Speech enhancement and noise suppression | Experimentally validated |
-| HTDemucs | Music source separation | Experimentally validated |
-| SepFormer | Overlapping speech separation | Planned |
-| Whisper | Automatic speech recognition and transcription | Planned |
-| Silero VAD | Voice activity detection | Planned |
-| pyannote.audio | Speaker diarization | Under consideration |
-| CLAP | Semantic audio classification | Under consideration |
-| YAMNet | Environmental sound classification | Under consideration |
+| DeepFilterNet3 | Speech enhancement | Integrated; real-checkpoint pilot run |
+| HTDemucs (`htdemucs`) | Four-stem music separation | Integrated; real-checkpoint pilot run |
+| SepFormer (`speechbrain/sepformer-wsj02mix`) | Two-speaker speech separation | Integrated; real-checkpoint pilot run |
+| Whisper | Speech transcription | Integrated; real-checkpoint pilot run |
+| Silero VAD | Speech activity detection | Integrated; real-checkpoint pilot run |
+| CLAP (`laion/clap-htsat-unfused`) | Zero-shot audio description ranking | Integrated; real-checkpoint pilot run |
+| YAMNet (`google/yamnet/1`) | Fixed-vocabulary audio-event classification | Integrated; real-checkpoint pilot run |
+| pyannote.audio Community-1 | Speaker diarization | Adapter and tests present; **not integrated** in V1 |
 
-DeepFilterNet3 and HTDemucs have been evaluated in preliminary Google Colab experiments. Their integration into the modular Python framework is still in development.
+Each integrated adapter has been exercised against a pretrained checkpoint in a preliminary Google Colab experiment. These are **integration smoke tests**, not systematic accuracy, robustness, latency, or cross-dataset evaluations. The model registry reflects Python integration and preliminary experimental evidence; **browser compatibility is not assessed** for these models.
 
-Other models will be evaluated based on compatibility, processing requirements, and relevance to the intended demonstration.
+The pyannote integration is deferred to V2 because the intended model requires Hugging Face access conditions and token-based setup. The presence of its adapter and mock-backed tests does not establish working checkpoint integration.
 
-## Intelligent Model Selection
+## Implemented components
 
-The central component of the planned system is an **Adaptive AI Model Selector**.
+- **Audio processing:** immutable `AudioClip` objects, file/byte decoding, validated sample rates and channels, resampling, and controlled signal-to-interference mixing (`audio.py`).
+- **Acoustic features:** deterministic global spectral and signal descriptors (`features.py`), with time-windowed summaries (`temporal.py`). These descriptors are not automatic speech/music classifiers.
+- **Explainable selection:** `models.py` and `selector.py` match an explicitly requested task against declared capabilities at the `catalog`, `integrated`, or `browser` tier. Selection explains eligibility and exclusions without silently choosing among multiple matching models.
+- **Pipeline planning:** `pipeline.py` describes compatible stage sequences, but planning alone does not perform inference.
+- **Executable pipelines:** `execution.py` runs DeepFilterNet3 → Whisper; `separate_execution.py` runs SepFormer → Whisper once per separated output track. Callers supply already-loaded model adapters.
+- **Optional pretrained adapters:** `deepfilternet.py`, `htdemucs.py`, `sepformer.py`, `whisper.py`, `silero_vad.py`, `clap.py`, and `yamnet.py`. Imports do not eagerly download checkpoints.
 
-Its purpose is to analyze an incoming audio signal and determine which processing model, or combination of models, is appropriate for the selected task.
+### Supported executable pipelines
 
-The decision process will consider:
+| Pipeline ID | Stages | Result |
+|---|---|---|
+| `enhance_transcribe` | DeepFilterNet3 → Whisper | Enhanced audio and predicted transcription |
+| `separate_transcribe` | SepFormer → Whisper × 2 | Two aligned source estimates and two predicted transcriptions |
 
-- Acoustic characteristics of the input signal.
-- Presence of speech, music, and environmental sounds.
-- Noise and interference conditions.
-- Potential speaker overlap.
-- Intended processing task.
-- Model capabilities and computational requirements.
+Both pipelines have been executed in Google Colab with real checkpoints. The separation pipeline's output order is **not a persistent speaker identity** and is **not speaker diarization**.
 
-Rather than treating every recording identically, the system will provide context-aware processing recommendations.
+## Installation and tests
 
-Model selection decisions will be accompanied by explanations of the relevant acoustic characteristics and expected processing behavior.
+Requires **Python 3.11+**.
 
-## Current Implementation
+```bash
+python -m pip install -e ".[dev]"
+python -m pytest -q
+```
 
-The Python audio processing core currently provides:
+The core Python package uses NumPy, SciPy, and SoundFile. Neural-network frameworks and pretrained checkpoints are **optional and not installed by default**. This allows the unit suite to run without downloading model weights. The GitHub Actions workflow executes the repository's tests on Python 3.11; individual model checkpoints are evaluated separately in Colab.
 
-- Validated audio loading from supported files and encoded audio bytes.
-- Mono and multichannel signal handling.
-- Sample-rate conversion.
-- Controlled signal-to-interference mixing.
-- Handling of short interference recordings.
-- Peak-safe normalization while preserving relative signal power.
-- Input validation and resource limits.
-- Automated regression testing through GitHub Actions.
+For real-model inference, install the dependencies associated with the specific backend in a compatible environment. For example, for **SepFormer → Whisper**, the Colab pilot used:
 
-The implementation is located in `src/audio_lab/audio.py`.
+```bash
+python -m pip install "speechbrain==1.0.3" "huggingface_hub>=0.24,<1" openai-whisper
+```
 
-This module establishes the signal-processing infrastructure required for subsequent AI integration.
+This is an experimental setup, not a complete, platform-independent dependency lockfile. PyTorch and compatible audio packages are also needed; Colab may already provide some of them. Other adapters use their respective model ecosystems (DeepFilterNet, Demucs, Silero VAD, Hugging Face Transformers, or TensorFlow Hub). Avoid installing all heavy backends in one environment without checking version compatibility.
 
-## Planned Interactive Demonstration
+## Quick start: inspect catalog availability
 
-The interactive laboratory is designed around five stages.
+```python
+from audio_lab.models import AudioTask
+from audio_lab.selector import SelectionTier, select_models
+from audio_lab.pipeline import PipelinePreset, plan_pipeline
 
-### 1. Audio Input
+selection = select_models(AudioTask.AUDIO_CLASSIFICATION, tier=SelectionTier.INTEGRATED)
+print([model.model_id for model in selection.eligible_models])
+# ['clap', 'yamnet'] — both are eligible; no automatic ranking is implied.
 
-Users will be able to:
+plan = plan_pipeline(PipelinePreset.SEPARATE_TRANSCRIBE, tier=SelectionTier.INTEGRATED)
+print(plan.available)  # True, based on registered adapter availability.
+```
 
-- Select audio recordings from an available sample library.
-- Upload their own audio files.
-- Record audio directly from a microphone.
-- Inspect the corresponding waveform and spectrogram.
+`plan.available` reports registry-level capability, **not** whether optional packages, cached weights, hardware, or a particular input are ready for execution.
 
-### 2. Acoustic Interference
+## Example: real two-speaker separation and transcription
 
-Users will be able to:
+Install compatible SepFormer and Whisper dependencies before running this example. Loading models may download large weights; CPU execution can be slow.
 
-- Select environmental noise, music, or overlapping speech from an interference library.
-- Upload or record custom interference signals.
-- Adjust the signal-to-interference ratio.
-- Visualize the interference independently and its effect on the original audio.
+```python
+from audio_lab.audio import load_audio
+from audio_lab.sepformer import SepFormerAdapter
+from audio_lab.whisper import WhisperAdapter
+from audio_lab.separate_execution import execute_separate_transcribe
 
-### 3. AI Analysis and Selection
+# Replace with a real recording containing two overlapping speakers.
+# The amplitude must be within [-1, 1] after decoding and resampling.
+clip = load_audio("two_speakers.wav", sample_rate=8_000, channels="mono")
 
-The system will analyze the resulting audio and recommend suitable AI processing models.
+separator = SepFormerAdapter.load(device="cpu")
+transcriber = WhisperAdapter.load(model_name="base.en", device="cpu")
+result = execute_separate_transcribe(
+    clip,
+    separator=separator,
+    transcriber=transcriber,
+    language="en",
+    normalize_for_transcription=True,
+)
 
-The demonstration will present:
+print("Shared ASR attenuation gain:", result.transcription_gain)
+for index, transcript in enumerate(result.transcriptions, start=1):
+    print(f"Output track {index}:", transcript.text)
+```
 
-- Detected acoustic characteristics.
-- Recommended model or processing pipeline.
-- Explanation of the selection.
-- Expected capabilities and limitations.
+`normalize_for_transcription=True` computes **one common attenuation factor** when separated samples exceed `[-1, 1]`. The gain is recorded in `result.transcription_gain`, and the source estimates in `result.separation` are preserved unchanged. No clipping is performed. The default `False` mode strictly rejects out-of-range separated audio before transcription.
 
-### 4. AI Processing
+The SepFormer checkpoint was trained for two-speaker mixtures in a particular data domain; separation and transcription quality on other inputs are not guaranteed. The Whisper output is a model prediction, not verified reference text.
 
-Depending on the selected task, the system may perform:
+## Example: speech enhancement and transcription
 
-- Speech enhancement.
-- Music source separation.
-- Overlapping speaker separation.
-- Speech transcription.
-- Speaker diarization.
+With DeepFilterNet and Whisper dependencies installed, the other reviewed workflow is:
 
-Multiple models may be combined when the task requires sequential processing.
+```python
+from audio_lab.audio import load_audio
+from audio_lab.deepfilternet import DeepFilterNet3Adapter
+from audio_lab.whisper import WhisperAdapter
+from audio_lab.execution import execute_enhance_transcribe
 
-### 5. Results and Visualization
+clip = load_audio("noisy_speech.wav", channels="mono")
+result = execute_enhance_transcribe(
+    clip,
+    enhancer=DeepFilterNet3Adapter.load(),
+    transcriber=WhisperAdapter.load(model_name="tiny", device="cpu"),
+    language="en",
+)
+print(result.transcription.text)
+```
 
-Users will be able to explore:
+Enhancement retains the original input audio and gives a separate enhanced `AudioClip`; it does not promise better recognition on every recording.
 
-- Original, interference, and mixed audio.
-- Processed audio and separated sources.
-- Spectrograms before and after processing.
-- Visual comparisons highlighting attenuated and preserved signal components.
-- Speech transcripts when applicable.
-- Model selection explanations and processing information.
+## Limits and research interpretation
 
-Spectrograms will be available throughout the interaction, including when audio sources and interference signals are introduced.
+- **Short-form inference:** model-specific limits apply (generally up to 30 seconds for the speech pipelines; CLAP accepts up to 10 seconds per request). Audio must meet the validation requirements of each adapter.
+- **No automatic content-driven routing:** acoustic features can be computed, but are not yet used to infer a task, rank competing models, or dynamically choose a pipeline.
+- **No browser release in V1:** GitHub Pages and an interactive frontend are future goals; the Python integration results do not demonstrate client-side inference feasibility.
+- **No diarization guarantee:** pyannote checkpoint integration is deferred; SepFormer produces two unordered tracks, not speaker labels over time.
+- **Non-equivalent classification scores:** CLAP's zero-shot scores are relative to the submitted text descriptions. YAMNet returns independent per-class scores for its fixed AudioSet vocabulary; these do not sum to one.
+- **Pilot evidence:** preliminary timing and sample outputs demonstrate that checkpoints and interfaces run, not accuracy across speakers, languages, noise conditions, or hardware.
 
-## Deployment Strategy
+## Reproducibility and third-party licenses
 
-The project targets a static, browser-accessible demonstration hosted through GitHub Pages.
+The repository's regression tests use controlled backends to validate contracts and error cases without downloading weights. Real-checkpoint experiments were run separately in Google Colab. For comparable replication, record the Git commit SHA, Python and optional-package versions, checkpoint revisions, hardware, input audio and preprocessing, elapsed time, and model outputs. A fully locked multi-backend environment and consolidated quantitative benchmark are **not yet provided**.
 
-The intended architecture avoids dedicated backend infrastructure and recurring server costs.
+This repository's source code is released under the **MIT License** (see `LICENSE`). Third-party packages, model weights, and datasets have their **own licenses, attribution requirements, and usage conditions**. In particular, publicly accessible or downloadable weights should not be assumed to share the repository's MIT license. Verify the applicable upstream terms before redistributing or commercializing any weights or datasets.
 
-Python will be used for algorithm development, experimentation, and validation. Browser-compatible inference technologies will be evaluated for the interactive implementation.
+## Roadmap
 
-Because pretrained models differ in memory requirements, runtime dependencies, and computational complexity, not every model can be assumed to support real-time browser execution.
+**Python V1:** validated audio and feature processing; explainable task-based selection and planning; seven pilot-validated pretrained adapters; two real-checkpoint-tested execution pipelines.
 
-The demonstration will prioritize lightweight processing and practical compatibility, with clearly identified limitations.
+**Future work:** reproducible evaluation datasets and quantitative metrics; acoustic-content-aware ranking and routing; pyannote access and integration; scalable pipeline presets; browser feasibility assessments and an interactive visualization experience.
 
-## Development
+## Research motivation
 
-**Requirements:** Python 3.11 or newer.
-
-Install the project and development dependencies:
-
-`python -m pip install -e ".[dev]"`
-
-Run automated tests:
-
-`python -m pytest -v`
-
-The repository uses GitHub Actions for continuous integration and automated validation.
-
-## Research Motivation
-
-This project revisits an earlier Digital Signal Processing experiment developed during my undergraduate studies in Telecommunications Engineering.
-
-The original experiment investigated acoustic interference attenuation using a conventional digital filtering approach.
-
-The current project extends that motivation toward AI-driven audio processing, exploring how specialized pretrained models can be selected and combined to address different acoustic scenarios.
-
-The guiding question is:
-
-***How can an audio processing system identify and select suitable pretrained AI models based on acoustic characteristics, processing objectives, and computational constraints?***
-
-The emphasis is on explainable decision-making, modular software design, experimental evaluation, and an accessible interactive demonstration.
+This project builds on an earlier Digital Signal Processing experiment in acoustic interference attenuation, developed during undergraduate Telecommunications Engineering studies. It explores the research question: *How can an audio system select and combine appropriate pretrained models, with transparent evidence about capability, processing requirements, and limitations?*
 
 ## Author
 
-**Luciano Stork**
-
-PhD Student, Rowan University
-
-[GitHub Profile](https://github.com/desouz78)
-
-## License
-
-This project is distributed under the MIT License.
-
-Third-party models, pretrained weights, and datasets are subject to their respective licenses and usage restrictions.
+**Luciano Stork**  
+PhD Student, Rowan University  
+[GitHub profile](https://github.com/desouz78)
