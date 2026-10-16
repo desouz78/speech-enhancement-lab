@@ -176,7 +176,7 @@ The current project extends that motivation toward AI-driven audio processing, e
 
 The guiding question is:
 
-**How can an audio processing system identify and select suitable pretrained AI models based on acoustic characteristics, processing objectives, and computational constraints?**
+***How can an audio processing system identify and select suitable pretrained AI models based on acoustic characteristics, processing objectives, and computational constraints?***
 
 The emphasis is on explainable decision-making, modular software design, experimental evaluation, and an accessible interactive demonstration.
 
