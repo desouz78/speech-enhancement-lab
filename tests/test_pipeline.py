@@ -188,12 +188,18 @@ def test_catalog_plans_only_claim_capability_availability(preset):
 
 @pytest.mark.parametrize("preset", list(PipelinePreset))
 @pytest.mark.parametrize("tier", [SelectionTier.INTEGRATED, SelectionTier.BROWSER])
-def test_unintegrated_catalog_does_not_claim_runtime_readiness(preset, tier):
+def test_pipeline_planning_reflects_partial_python_integration(preset, tier):
     plan = plan_pipeline(preset, tier=tier)
+
+    expected = tuple(tier is SelectionTier.INTEGRATED and stage.definition.task is AudioTask.SPEECH_ENHANCEMENT for stage in plan.stages)
+
+    assert tuple(stage.available for stage in plan.stages) == expected
+    assert plan.unavailable_tasks == tuple(
+        stage.definition.task
+        for stage, available in zip(plan.stages, expected)
+        if not available
+    )
     assert not plan.available
-    assert plan.unavailable_tasks == tuple(stage.task for stage in plan.definition.stages)
-    assert all(not stage.available for stage in plan.stages)
-    assert all(not stage.selection.eligible_models for stage in plan.stages)
 
 
 def test_planning_retains_model_rejection_reasons():
@@ -201,7 +207,7 @@ def test_planning_retains_model_rejection_reasons():
     for stage in plan.stages:
         assert stage.selection.assessments
         for item in stage.selection.assessments:
-            assert SelectionReason.ADAPTER_NOT_INTEGRATED in item.reasons
+            assert (SelectionReason.ADAPTER_NOT_INTEGRATED in item.reasons) == (item.model.integration_status is IntegrationStatus.NOT_INTEGRATED)
             assert SelectionReason.BROWSER_NOT_ASSESSED in item.reasons
 
 

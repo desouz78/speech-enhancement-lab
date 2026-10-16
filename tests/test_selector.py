@@ -69,12 +69,12 @@ def test_tier_accepts_exact_string_values(tier):
     )
 
 
-def test_defaults_do_not_claim_runtime_availability():
+def test_catalog_reports_python_integration_without_browser_readiness():
     result = select_models(AudioTask.SPEECH_ENHANCEMENT)
+
     assert [model.model_id for model in result.eligible_models] == ["deepfilternet3"]
     assert result.assessments[0].reasons == (
         SelectionReason.TASK_SUPPORTED,
-        SelectionReason.ADAPTER_NOT_INTEGRATED,
         SelectionReason.BROWSER_NOT_ASSESSED,
     )
     assert result.assessments[0].model.evidence_status is EvidenceStatus.PILOT_EVALUATED
@@ -82,11 +82,18 @@ def test_defaults_do_not_claim_runtime_availability():
 
 @pytest.mark.parametrize("task", list(AudioTask))
 @pytest.mark.parametrize("tier", [SelectionTier.INTEGRATED, SelectionTier.BROWSER])
-def test_current_catalog_has_no_deployable_models(task, tier):
+def test_catalog_availability_matches_adapter_status(task, tier):
     result = select_models(task, tier=tier)
-    assert result.eligible_models == ()
-    assert len(result.excluded_models) > 0
-    assert all(not assessment.eligible for assessment in result.assessments)
+
+    expected = (
+        ("deepfilternet3",)
+        if task is AudioTask.SPEECH_ENHANCEMENT and tier is SelectionTier.INTEGRATED
+        else ()
+    )
+
+    assert tuple(model.model_id for model in result.eligible_models) == expected
+    assert len(result.assessments) == len(result.eligible_models) + len(result.excluded_models)
+    assert result.assessments
 
 
 def test_audio_classification_is_unranked_and_stably_ordered():
